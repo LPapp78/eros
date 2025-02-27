@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Eros Royale - Jogo para Casais +18 vs01</title>
+    <style>
+        body {
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+        img {
+            width: 100px;
+            margin: 10px;
+        }
+        #statusJogo, #mensagens {
+            margin-top: 20px;
+        }
+        #gifDados {
+            width: 150px;
+            display: none;
+            margin: 20px auto;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+        .player-input input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #e63946;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .player-input input:focus {
+            border-color: #d62839;
+            box-shadow: 0 0 10px rgba(230, 57, 70, 0.3);
+        }
+        #iniciarJogo {
+            background: #e63946;
+            color: #fff;
+            border: none;
+            padding: 12px;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px;
+        }
+        #iniciarJogo:hover {
+            background: #d62839;
+            transform: translateY(-3px);
+        }
+        @media (max-width: 768px) {
+            img {
+                width: 80px;
+            }
+            #gifDados {
+                width: 120px;
+            }
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            #iniciarJogo {
+                font-size: 14px;
+                padding: 10px;
+            }
+            .player-input input {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+    <audio id="somDado" src="somDadojogo.mp3"></audio>
+    <img id="gifDados" src="dados.gif" alt="Dados Rolando">
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const appContainer = document.getElementById("app");
+            const somDado = document.getElementById("somDado");
+            const gifDados = document.getElementById("gifDados");
+            let jogadores = [];
+            let indexJogadorAtual = 0;
+
+            function criarTelaCadastro() {
+                appContainer.innerHTML = `
+                    <h1>Eros Royale - Cadastro de Jogadores</h1>
+                    <div class="grid-container">
+                        ${Array.from({ length: 6 }, (_, i) => `
+                            <div class="player-input">
+                                <input id="jogador${i + 1}" placeholder="Nome do Jogador ${i + 1}" />
+                            </div>
+                        `).join("")}
+                    </div>
+                    <button id="iniciarJogo" style="margin-top: 30px;">Iniciar o Jogo</button>
+                `;
+                document.getElementById("iniciarJogo").addEventListener("click", iniciarCadastro);
+            }
+
+            function iniciarCadastro() {
+                jogadores = Array.from({ length: 6 }, (_, i) => {
+                    const nome = document.getElementById(`jogador${i + 1}`).value.trim();
+                    return nome ? { nome, roupas: 5, fichas: 3, imunidade: true } : null;
+                }).filter(Boolean);
+                if (jogadores.length > 0) criarTelaJogo();
+            }
+
+            function criarTelaJogo() {
+                appContainer.innerHTML = `
+                    ${["cartas.png", "roupa.png", "imunidade.png", "dados.png"].map(img => `
+                        <img src="${img}" alt="Imagem do Jogo" />
+                    `).join("")}
+                    <div id="statusJogo"></div>
+                    <button id="jogarRodada">Jogar Rodada</button>
+                `;
+                document.getElementById("jogarRodada").addEventListener("click", jogarRodada);
+                atualizarStatus();
+            }
+
+            function atualizarStatus() {
+                const jogadorAtual = jogadores[indexJogadorAtual];
+                document.getElementById("statusJogo").innerHTML = `
+                    <p>Jogador da vez: ${jogadorAtual.nome}</p>
+                    <p>Roupas: ${jogadorAtual.roupas}, Fichas: ${jogadorAtual.fichas}</p>
+                    <p>Imunidade ao Strip Total: ${jogadorAtual.imunidade ? "Sim" : "Nao"}</p>
+                `;
+            }
+
+            function jogarRodada() {
+                if (!jogadores.length) return;
+                gifDados.style.display = "block";
+                somDado.play();
+                setTimeout(() => {
+                    gifDados.style.display = "none";
+                    const dado = Math.floor(Math.random() * 6) + 1;
+                    const jogador = jogadores[indexJogadorAtual];
+                    executarAcaoDado(jogador, dado);
+                    cartaSurpresa(jogador);
+                    alert(`Status final da rodada: Roupas: ${jogador.roupas}, Fichas: ${jogador.fichas}, Imunidade: ${jogador.imunidade ? "Sim" : "Nao"}`);
+                    verificarFimJogo(jogador);
+                    indexJogadorAtual = (indexJogadorAtual + 1) % jogadores.length;
+                    atualizarStatus();
+                }, 3000);
+            }
+
+            function executarAcaoDado(jogador, dado) {
+                alert(`Dado: ${dado} - ${["Tire uma peca de roupa ou perca uma ficha","Tire duas pecas de roupa ou perca duas fichas","Recupere uma peca de roupa","Tire uma peca de roupa obrigatoriamente","Faca um strip total (ou use Imunidade)","Pegue uma carta surpresa"][dado - 1]}`);
+                if (dado === 1) {
+                    decidirRoupaOuFicha(jogador, 1);
+                } else if (dado === 2) {
+                    decidirRoupaOuFicha(jogador, 2);
+                } else if (dado === 3) {
+                    if (jogador.roupas < 5) jogador.roupas++;
+                    else alert("Limite maximo de pecas de roupa atingido (5).");
+                } else if (dado === 4) {
+                    jogador.roupas = Math.max(0, jogador.roupas - 1);
+                    alert("Uma peca de roupa foi removida obrigatoriamente.");
+                    if (jogador.roupas === 0) verificarFimJogo(jogador);
+                } else if (dado === 5) {
+                    if (jogador.imunidade) {
+                        alert("Imunidade usada! Strip total evitado.");
+                        jogador.imunidade = false;
+                    } else {
+                        jogador.roupas = 0;
+                        verificarFimJogo(jogador);
+                    }
+                }
+            }
+
+            function decidirRoupaOuFicha(jogador, quantidade) {
+                for (let i = 0; i < quantidade; i++) {
+                    if (jogador.fichas > 0) {
+                        const escolha = prompt("Digite 'f' para usar uma ficha ou 'r' para tirar uma peca de roupa:").toLowerCase();
+                        if (escolha === 'f') {
+                            jogador.fichas--;
+                        } else {
+                            jogador.roupas = Math.max(0, jogador.roupas - 1);
+                            if (jogador.roupas === 0) verificarFimJogo(jogador);
+                        }
+                    } else {
+                        alert("Fichas insuficientes. Uma peca de roupa sera removida.");
+                        jogador.roupas = Math.max(0, jogador.roupas - 1);
+                        if (jogador.roupas === 0) verificarFimJogo(jogador);
+                    }
+                }
+            }
+
+            function cartaSurpresa(jogador) {
+                const cartas = [
+                    "Carta Branca. Invente uma acao para ser executada por um casal que voce escolher.",
+                    "Carta Branca. Invente uma acao para voce participar com alguem que voce escolher.",
+                    "Faca um movimento sensual para o proximo jogador.",
+                    "Beije o participante anterior (local do beijo a ser combinado entre os dois).",
+                    "Perca uma ficha.",
+                    "Tire uma peca de roupa.",
+                    "Mostre uma parte do corpo ainda coberta.",
+                    "Comente suas sensacoes emocionais e corporais sobre o jogo.",
+                    "Peca para um jogador (a sua escolha) mostrar uma parte do corpo ainda coberta.",
+                    "Seja beijado pelo seu parceiro(a).",
+                    "Beije seu parceiro(a).",
+                    "Beije um jogador escolhido(a) pelos outros participantes que tambem escolherao o lugar que o beijo sera dado.",
+                    "Seja beijado(a) por alguem escolhido(a) pelos participantes mas escolha o lugar onde quer ser beijado(a).",
+                    "Toque suavemente seu parceiro(a) sobre a roupa intima.",
+                    "Escolha um(a) jogador(a) para tocar suavemente seu companheiro(a) sobre a roupa intima.",
+                    "Toque seu proprio corpo de forma sensual ou carinhosa."
+                ];
+                const sorteada = cartas[Math.floor(Math.random() * cartas.length)];
+                alert(`Carta Surpresa: ${sorteada}`);
+
+                if (sorteada.includes("Tire uma peca de roupa")) {
+                    jogador.roupas = Math.max(0, jogador.roupas - 1);
+                    if (jogador.roupas === 0) verificarFimJogo(jogador);
+                } else if (sorteada.includes("Perca uma ficha")) {
+                    if (jogador.fichas > 0) jogador.fichas--;
+                    else alert("O jogador nao possui fichas para perder.");
+                }
+            }
+
+            function verificarFimJogo(jogador) {
+                if (jogador.roupas === 0) {
+                    alert(`Jogo Encerrado: ${jogador.nome} ficou sem roupas e devera pagar uma prenda conforme as instrucoes ou acordo entre os participantes.`);
+                    if (confirm("Deseja reiniciar o jogo?")) criarTelaCadastro();
+                }
+            }
+
+            criarTelaCadastro();
+        });
+    </script>
+</body>
+</html>
